@@ -6,7 +6,6 @@ from scrapy.http import Request
 import urlparse
 import re
 import lxml
-import requests
 from daytonlocal.items import DaytonlocalItem
 
 facebook_matcher = re.compile('.*GoHere=(.*facebook.*)')
@@ -38,84 +37,68 @@ class DaytonLocalSpider(BaseSpider):
 
     def extract(self, response):
 
+        sel = Selector(response)
+
         dom = lxml.html.fromstring(response.body)
 
+        logo = sel.xpath('//*[@id="MainContentArea"]//div[contains(@class, "dright")]/a/img/ @src').extract()
+
+
         entry = dom.cssselect('div.vcard')[0]
-        data = {
-                'name': entry.cssselect('.fn')[0].text_content(),
-                'website': entry.cssselect('.fn a')[0].get('href'),
-                'logo': 'http://www.daytonlocal.com'+dom.cssselect('#MainContentArea img')[0].get('src'),
-                'address1': entry.cssselect('.street-address')[0].text_content(),
-                'address2': entry.cssselect('.adr br')[0].tail,
-                'city': entry.cssselect('.locality')[0].text_content(),
-                'state': entry.cssselect('.region')[0].text_content(),
-                'zip': entry.cssselect('.postal-code')[0].text_content(),
-                'phone': entry.cssselect('.clearl')[0].text_content(),
-                'description': entry.cssselect('.clearl')[2].text_content(),
-        }
 
-        item = DaytonlocalItem(**data)
+        item = DaytonlocalItem()
 
-        #social media links
-        links = entry.cssselect('.clearl')[1].cssselect('a')
-        for link in links:
-            href = link.get('href')
-            if 'facebook' in href:
-                item['facebook'] = facebook_matcher.match(href).group(1)
-            elif 'twitter' in href:
-                item['twitter'] = twitter_matcher.match(href).group(1)
-            else:
-                match = category_matcher.match(href)
-                if match:
-                    item['category'] = match.group(1).split('/')
+        items = []
 
-        #Strip all strings
-        for k, v in item.iteritems():
-            if isinstance(v, basestring):
-                item[k] = v.strip()
+        for card in sel.xpath('//div[contains(@class, "vcard")]'):
 
-        return item
+            name = card.xpath('//*[contains(@class, "fn")]//strong/text()').extract()
+            item['name'] = name[0] if name else None
 
+            website = card.xpath('//*[contains(@class, "fn")]//a/ @href').extract()
+            item['website'] = website[0].get('href') if website else None
 
+            item['logo'] = urlparse.urljoin('http://www.daytonlocal.com', logo[0]) if logo else None
 
-    # def extract(self, response):
-    #
-    #
-    #
-    #     sel = Selector(response)
-    #     entry = sel.css('div.vcard')[0]
-    #     item = DaytonlocalItem(
-    #             name=sel.xpath("//*[contains(@class, 'fn')]/a/ @href").extract()[0],
-    #             website=sel.xpath("//*[contains(@class, 'fn')]/a/ @href").extract()[0],
-    #             logo=urlparse.urljoin('http://www.daytonlocal.com', sel.xpath('//*[@id="MainContentArea"]/div[1]/div[1]/a/img/ @src').extract()[0]),
-    #             address1=sel.xpath("//*[contains(@class, 'street-address')]/text()").extract()[0],
-    #
-    #             address2=entry.css('.adr br')[0].tail,
-    #             city=entry.css('.locality')[0].text_content(),
-    #             state=entry.css('.region')[0].text_content(),
-    #             zip=entry.css('.postal-code')[0].text_content(),
-    #             phone=entry.css('.clearl')[0].text_content(),
-    #             description=entry.css('.clearl')[2].text_content()
-    #     )
-    #
-    #     #social media links
-    #     links = entry.css('.clearl')[1].css('a')
-    #     for link in links:
-    #         href = link.get('href')
-    #         if 'facebook' in href:
-    #             item.facebook = facebook_matcher.match(href).group(1)
-    #         elif 'twitter' in href:
-    #             item.twitter = twitter_matcher.match(href).group(1)
-    #         else:
-    #             match = category_matcher.match(href)
-    #             if match:
-    #                 item.category = match.group(1).split('/')
-    #
-    #     #Strip all strings
-    #     for k, v in item.iteritems():
-    #         if isinstance(v, basestring):
-    #             item[k] = v.strip()
-    #
-    #     return item
+            address1 = card.xpath('//span[contains(@class, "street-address")]/text()').extract()
+            item['address1'] = address1[0] if address1 else None
 
+            address2 = entry.cssselect('.adr br')
+            item['address2'] = address2[0].tail if address2 else None
 
+            city = card.xpath('//span[contains(@class, "locality")]/text()').extract()
+            item['city'] = city[0] if city else None
+
+            state = card.xpath('//span[contains(@class, "region")]/text()').extract()
+            item['state'] = state[0] if state else None
+
+            zipcode = card.xpath('//span[contains(@class, "postal-code")]/text()').extract()
+            item['zip'] = zipcode[0] if zipcode else None
+
+            phone =entry.cssselect('.clearl')
+            item['phone'] = phone[0].text_content() if phone else None
+
+            descr = entry.cssselect('.clearl')
+            item['description'] = descr[2].text_content() if descr else None
+
+            #social media links
+            links = entry.cssselect('.clearl')[1].cssselect('a')
+            for link in links:
+                href = link.get('href')
+                if 'facebook' in href:
+                    item['facebook'] = facebook_matcher.match(href).group(1)
+                elif 'twitter' in href:
+                    item['twitter'] = twitter_matcher.match(href).group(1)
+                else:
+                    match = category_matcher.match(href)
+                    if match:
+                        item['category'] = match.group(1).split('/')
+
+            #Strip all strings
+            for k, v in item.iteritems():
+                if isinstance(v, basestring):
+                    item[k] = v.strip()
+
+            items.append(item)
+
+        return items
