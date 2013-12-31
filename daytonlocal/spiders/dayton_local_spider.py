@@ -8,6 +8,7 @@ import re
 import lxml
 import datetime
 from daytonlocal.items import DaytonlocalItem
+import phonenumbers
 
 facebook_matcher = re.compile('.*GoHere=(.*facebook.*)')
 twitter_matcher = re.compile('.*GoHere=(.*twitter.*)')
@@ -85,9 +86,19 @@ class DaytonLocalSpider(BaseSpider):
 
             special_divs = card.xpath('div[contains(@class, "clearl")]')
 
-            item['phone'] = special_divs[0].xpath('text()').extract()[0] if special_divs else None
+            if special_divs:
+                phone = special_divs[0].xpath('text()').extract()
+                try:
+                    p = phonenumbers.parse(phone[0], 'US')
+                    p = phonenumbers.normalize_digits_only(p)
+                    item['phone'] = p
+                except Exception, e:
+                    item['phone'] = None
+                    print e
 
-            item['description'] = special_divs[2].xpath('text()').extract()[0] if len(special_divs)>=3 else None
+            if len(special_divs) >=3:
+                descr = special_divs[2].xpath('text()').extract()
+                item['description'] = descr[0] if descr else None
 
             item['facebook'] = None
             item['twitter'] = None
@@ -117,11 +128,14 @@ class DaytonLocalSpider(BaseSpider):
 
 if __name__ == '__main__':
     #Run data extraction test on individual page
-    url = 'http://www.daytonlocal.com/listings/gounaris-denslow-abboud.asp'
+    urls = ['http://www.daytonlocal.com/listings/gounaris-denslow-abboud.asp',
+            'http://www.daytonlocal.com/listings/indian-ripple-dental.asp']
     import requests
     from scrapy.http import Request, HtmlResponse
-    request = Request(url=url)
-    response = HtmlResponse(url=url, request=request, body=requests.get(url).text, encoding='utf-8')
 
-    print DaytonLocalSpider.extract(DaytonLocalSpider(), response=response)
+    for url in urls:
+        request = Request(url=url)
+        response = HtmlResponse(url=url, request=request, body=requests.get(url).text, encoding='utf-8')
+
+        print DaytonLocalSpider.extract(DaytonLocalSpider(), response=response)
 
