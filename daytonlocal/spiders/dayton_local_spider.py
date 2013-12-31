@@ -52,7 +52,7 @@ class DaytonLocalSpider(BaseSpider):
         for card in sel.xpath('//div[contains(@class, "vcard")]'):
 
             item['data_source_url'] = response.url
-            item['retrieved_on'] = datetime.date.today().strftime("%I:%M%p on %B %d, %Y")
+            item['retrieved_on'] = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
 
             name = card.xpath('//*[contains(@class, "fn")]//strong/text()').extract()
             item['name'] = name[0] if name else None
@@ -85,12 +85,16 @@ class DaytonLocalSpider(BaseSpider):
 
             special_divs = card.xpath('div[contains(@class, "clearl")]')
 
-            item['phone'] = special_divs[0].xpath('text()').extract() if special_divs else None
+            item['phone'] = special_divs[0].xpath('text()').extract()[0] if special_divs else None
 
-            item['description'] = special_divs[2].xpath('text()').extract() if len(special_divs)>=3 else None
+            item['description'] = special_divs[2].xpath('text()').extract()[0] if len(special_divs)>=3 else None
+
+            item['facebook'] = None
+            item['twitter'] = None
+            item['category'] = None
 
             #social media links
-            hrefs = card.xpath('//span[contains(@class, "clearl")][1]/a/ @href')
+            hrefs = special_divs[1].xpath('a/ @href').extract()
             for href in hrefs:
                 if 'facebook' in href:
                     item['facebook'] = facebook_matcher.match(href).group(1)
@@ -109,5 +113,15 @@ class DaytonLocalSpider(BaseSpider):
             items.append(item)
 
         return items
-#s
+
+
+if __name__ == '__main__':
+    #Run data extraction test on individual page
+    url = 'http://www.daytonlocal.com/listings/gounaris-denslow-abboud.asp'
+    import requests
+    from scrapy.http import Request, HtmlResponse
+    request = Request(url=url)
+    response = HtmlResponse(url=url, request=request, body=requests.get(url).text, encoding='utf-8')
+
+    print DaytonLocalSpider.extract(DaytonLocalSpider(), response=response)
 
