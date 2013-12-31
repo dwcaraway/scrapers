@@ -23,23 +23,22 @@ class DaytonLocalSpider(BaseSpider):
     def parse(self, response):
         sel = Selector(response)
         links = sel.css('#MainContentArea div.clearc a').xpath('@href').extract()
-        return [Request(url=link, callback='paginate') for link in links if not link.startswith('#')]
-
+        return [Request(url=link, callback=self.paginate) for link in links if not link.startswith('#')]
 
     def paginate(self, response):
         sel = Selector(response)
         links = sel.xpath("//div[contains(@class,'dright')]/a/ @href").extract()
-        link_req_objs = [Request(url=link, callback='extract') for link in links]
+        link_req_objs = [Request(url=link, callback=self.extract) for link in links]
         next_url = sel.xpath("//a[text()='Next']/@href").extract()
         if next_url:
-            link_req_objs.append(Request(url=urlparse.urljoin(response.url, next_url[0]), callback='paginate'))
+            link_req_objs.append(Request(url=urlparse.urljoin(response.url, next_url[0]), callback=self.paginate))
 
         return link_req_objs
 
 
     def extract(self, response):
 
-        dom = lxml.html.fromstring(response.text)
+        dom = lxml.html.fromstring(response.body)
 
         entry = dom.cssselect('div.vcard')[0]
         data = {
@@ -77,7 +76,7 @@ class DaytonLocalSpider(BaseSpider):
 
         return item
 
-DaytonLocalSpider().extract(requests.get('http://www.daytonlocal.com/listings/tint-masters.asp'))
+
 
     # def extract(self, response):
     #
