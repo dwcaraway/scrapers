@@ -87,7 +87,7 @@ class DaytonLocalSpider(BaseSpider):
 
             item['phone'] = special_divs[0].xpath('text()').extract() if special_divs else None
 
-            item['description'] = special_divs[2].xpath('text()').extract()  if len(special_divs)>=3 else None
+            item['description'] = special_divs[2].xpath('text()').extract() if len(special_divs)>=3 else None
 
             #social media links
             hrefs = card.xpath('//span[contains(@class, "clearl")][1]/a/ @href')
