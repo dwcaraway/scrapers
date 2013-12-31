@@ -6,6 +6,7 @@ from scrapy.http import Request
 import urlparse
 import re
 import lxml
+import datetime
 from daytonlocal.items import DaytonlocalItem
 
 facebook_matcher = re.compile('.*GoHere=(.*facebook.*)')
@@ -36,15 +37,13 @@ class DaytonLocalSpider(BaseSpider):
 
 
     def extract(self, response):
+        """
+        Takes the data out of the pages at www.daytonlocal.com/listings/*
+        """
 
         sel = Selector(response)
 
-        dom = lxml.html.fromstring(response.body)
-
         logo = sel.xpath('//*[@id="MainContentArea"]//div[contains(@class, "dright")]/a/img/ @src').extract()
-
-
-        entry = dom.cssselect('div.vcard')[0]
 
         item = DaytonlocalItem()
 
@@ -52,19 +51,28 @@ class DaytonLocalSpider(BaseSpider):
 
         for card in sel.xpath('//div[contains(@class, "vcard")]'):
 
+            item['data_source_url'] = response.url
+            item['retrieved_on'] = datetime.date.today().strftime("%I:%M%p on %B %d, %Y")
+
             name = card.xpath('//*[contains(@class, "fn")]//strong/text()').extract()
             item['name'] = name[0] if name else None
 
             website = card.xpath('//*[contains(@class, "fn")]//a/ @href').extract()
-            item['website'] = website[0].get('href') if website else None
+            item['website'] = website[0] if website else None
 
             item['logo'] = urlparse.urljoin('http://www.daytonlocal.com', logo[0]) if logo else None
 
             address1 = card.xpath('//span[contains(@class, "street-address")]/text()').extract()
             item['address1'] = address1[0] if address1 else None
 
-            address2 = entry.cssselect('.adr br')
-            item['address2'] = address2[0].tail if address2 else None
+            # This ones weird..the text we want is between two <br> tags
+            addr_div = card.css('.adr').extract()
+            address2 = None
+            if addr_div:
+                br = lxml.html.fromstring(addr_div[0]).cssselect('br')
+                if br:
+                    address2 = br[0].tail
+            item['address2'] = address2
 
             city = card.xpath('//span[contains(@class, "locality")]/text()').extract()
             item['city'] = city[0] if city else None
@@ -75,16 +83,15 @@ class DaytonLocalSpider(BaseSpider):
             zipcode = card.xpath('//span[contains(@class, "postal-code")]/text()').extract()
             item['zip'] = zipcode[0] if zipcode else None
 
-            phone =entry.cssselect('.clearl')
-            item['phone'] = phone[0].text_content() if phone else None
+            special_divs = card.xpath('div[contains(@class, "clearl")]')
 
-            descr = entry.cssselect('.clearl')
-            item['description'] = descr[2].text_content() if descr else None
+            item['phone'] = special_divs[0].xpath('text()').extract() if special_divs else None
+
+            item['description'] = special_divs[2].xpath('text()').extract()  if len(special_divs)>=3 else None
 
             #social media links
-            links = entry.cssselect('.clearl')[1].cssselect('a')
-            for link in links:
-                href = link.get('href')
+            hrefs = card.xpath('//span[contains(@class, "clearl")][1]/a/ @href')
+            for href in hrefs:
                 if 'facebook' in href:
                     item['facebook'] = facebook_matcher.match(href).group(1)
                 elif 'twitter' in href:
@@ -102,3 +109,5 @@ class DaytonLocalSpider(BaseSpider):
             items.append(item)
 
         return items
+#s
+

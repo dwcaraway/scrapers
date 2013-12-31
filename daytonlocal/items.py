@@ -21,3 +21,5 @@ class DaytonlocalItem(Item):
     facebook = Field()
     twitter = Field()
     category = Field()
+    data_source_url = Field()
+    retrieved_on = Field()
