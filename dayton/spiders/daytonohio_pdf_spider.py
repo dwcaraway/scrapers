@@ -7,6 +7,7 @@ import urllib2
 import lxml
 import datetime
 from dayton.items import DaytonOhioPDFItem
+from scrapy.http import Request
 
 class DaytonOhioPDFSpider(BaseSpider):
     """Crawls daytonohio.gov looking for PDF documents"""
@@ -31,7 +32,8 @@ class DaytonOhioPDFSpider(BaseSpider):
             pubDate = item.xpath('pubDate/text()').extract()
 
             result_item['title'] = title[0] if title else None
-            result_item['url'] = urllib2.quote(url[0], safe=':/') if url else None
+#            result_item['url'] = urllib2.quote(url[0], safe=':/') if url else None
+            result_item['url'] = url[0] if url else None
             result_item['author'] = author[0] if author else None
             result_item['pubDate'] = pubDate[0] if pubDate else None
 
