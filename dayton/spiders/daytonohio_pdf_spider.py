@@ -11,7 +11,7 @@ from scrapy.http import Request
 
 class DaytonOhioPDFSpider(BaseSpider):
     """Crawls daytonohio.gov looking for PDF documents"""
-    name = "daytonohio_pdf"
+    name = "daytonohio_rss_pdf"
     template_url = 'http://daytonohio.gov/Search/_layouts/srchrss.aspx?k=pdf&start=%d'
     allowed_domains = ["daytonohio.gov"]
     start_urls = [

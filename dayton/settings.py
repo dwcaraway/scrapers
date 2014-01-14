@@ -16,3 +16,5 @@ USER_AGENT = 'dayton (+http://www.codefordayton.org)'
 
 FEED_URI = 'feed.json'
 FEED_FORMAT = 'json'
+
+#ITEM_PIPELINES
