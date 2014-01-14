@@ -1,0 +1,60 @@
+__author__ = 'dwcaraway'
+
+from scrapy.spider import BaseSpider
+from scrapy.selector import Selector
+from scrapy.http import Request
+import urlparse
+import re
+import urllib2
+import lxml
+import datetime
+from daytonohiogov.items import DaytonOhioPDFItem
+import phonenumbers
+
+facebook_matcher = re.compile('.*GoHere=(.*facebook.*)')
+twitter_matcher = re.compile('.*GoHere=(.*twitter.*)')
+category_matcher = re.compile('.*[.]com/(.*)[.]asp')
+
+class DaytonOhioPDFSpider(BaseSpider):
+    """Crawls daytonohio.gov looking for PDF documents"""
+
+    name = "daytonohio_pdf"
+    allowed_domains = ["daytonohio.gov"]
+    start_urls = [
+        "http://daytonohio.gov/Search/Results.aspx?k=pdf&start1=1"
+    ]
+
+    def parse(self, response):
+        sel = Selector(response)
+        search_results = sel.css('div.srch-results')
+        titles = search_results.xpath('//*[contains(@class, "srch-Title")]//a/text()').extract()
+        urls = search_results.xpath('//*[contains(@class, "srch-Title")]//a/ @href').extract()
+
+        num_results = len(titles)
+
+        results = [DaytonOhioPDFItem(title=titles[result], url=urls[result])
+                   for result in range(num_results)]
+
+        # Construct next url
+        parsed = urlparse.urlparse(request.url)
+        dict = urlparse.parse_qs(parsed.query)
+        dict['start1'] = [''+int(dict['start1']) + 10]
+        qs = urllib2.urlencode(dict)
+        parsed.query = qs
+
+        results.append(Request(url=urlparse.urlunparse(parsed), callback=self.parse))
+
+        return results
+
+if __name__ == '__main__':
+    #Run data extraction test on individual page
+    urls = ["http://daytonohio.gov/Search/Results.aspx?k=pdf&start1=1"]
+    import requests
+    from scrapy.http import Request, HtmlResponse
+
+    for url in urls:
+        request = Request(url=url)
+        response = HtmlResponse(url=url, request=request, body=requests.get(url).text, encoding='utf-8')
+
+        print DaytonOhioPDFSpider.parse(DaytonOhioPDFSpider(), response=response)
+
