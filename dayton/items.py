@@ -23,3 +23,11 @@ class DaytonlocalItem(Item):
     category = Field()
     data_source_url = Field()
     retrieved_on = Field()
+
+class DaytonOhioPDFItem(Item):
+    # define the fields for your item here like:
+    # name = Field()
+    title = Field()
+    url = Field()
+    author = Field()
+    pubDate = Field()

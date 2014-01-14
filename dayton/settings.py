@@ -6,10 +6,10 @@
 #     http://doc.scrapy.org/en/latest/topics/settings.html
 #
 
-BOT_NAME = 'daytonlocal'
+BOT_NAME = 'codefordayton'
 
-SPIDER_MODULES = ['daytonlocal.spiders']
-NEWSPIDER_MODULE = 'daytonlocal.spiders'
+SPIDER_MODULES = ['dayton.spiders']
+NEWSPIDER_MODULE = 'dayton.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'daytonlocal (+http://www.yourdomain.com)'
+USER_AGENT = 'dayton (+http://www.codefordayton.org)'

@@ -7,7 +7,7 @@ import urlparse
 import re
 import lxml
 import datetime
-from daytonlocal.items import DaytonlocalItem
+from dayton.items import DaytonlocalItem
 import phonenumbers
 
 facebook_matcher = re.compile('.*GoHere=(.*facebook.*)')
