@@ -10,3 +10,5 @@ class DaytonOhioPDFItem(Item):
     # name = Field()
     title = Field()
     url = Field()
+    author = Field()
+    pubDate = Field()
